@@ -1,0 +1,22 @@
+{
+  "name": "db-task",
+  "version": "1.0.0",
+  "description": "PostgreSQL CRUD operations for Playwright project",
+  "main": "index.js",
+  "scripts": {
+    "test": "npx playwright test",
+    "test:crud": "npx playwright test tests/crud.spec.ts",
+    "db:seed": "npx ts-node src/seed.ts"
+  },
+  "dependencies": {
+    "pg": "^8.11.3",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "@types/node": "^20.10.0",
+    "@types/pg": "^8.10.9",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.2"
+  }
+}
