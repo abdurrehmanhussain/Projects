@@ -1,4 +1,4 @@
-# Shipin-Abd-ur-Rehman Test Automation Project
+# Sample-Abd-ur-Rehman Test Automation Project
 
 A multi-project test automation suite featuring E2E UI testing, PostgreSQL database testing, and gRPC API testing using Playwright.
 
