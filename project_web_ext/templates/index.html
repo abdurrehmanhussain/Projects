@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Web Extraction Job Manager</title>
+</head>
+<body>
+
+<h1>Web Extraction Job Manager</h1>
+
+<section>
+  <h2>Account</h2>
+  <div id="account-info">Loading...</div>
+</section>
+
+<hr>
+
+<section>
+  <h2>Register a Job</h2>
+  <form id="register-form">
+    <div>
+      <label>Name: <input type="text" name="name" required></label>
+    </div>
+    <div>
+      <label>Target URL: <input type="url" name="target_url" required placeholder="https://example.com"></label>
+    </div>
+    <div>
+      <label>Pages per run: <input type="number" name="pages_per_run" value="10" min="1" max="500"></label>
+    </div>
+    <div>
+      <button type="submit">Register Job</button>
+    </div>
+  </form>
+  <p id="register-error" style="color:red"></p>
+</section>
+
+<hr>
+
+<section>
+  <h2>Jobs</h2>
+  <button onclick="refresh()">Refresh</button>
+  <div id="jobs-list">Loading...</div>
+</section>
+
+<script>
+const ACCOUNT_ID = "000";
+
+async function api(url, method, body) {
+  const opts = { method: method || "GET", headers: {} };
+  if (body) {
+    opts.headers["Content-Type"] = "application/json";
+    opts.body = JSON.stringify(body);
+  }
+  const res = await fetch(url, opts);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.detail || "Request failed");
+  return data;
+}
+
+async function loadAccount() {
+  try {
+    const acc = await api("/api/accounts/" + ACCOUNT_ID);
+    document.getElementById("account-info").innerHTML =
+      "<strong>" + acc.name + "</strong> &mdash; " +
+      acc.pages_used + " / " + acc.monthly_allowance + " pages used &mdash; " +
+      "<strong>" + acc.pages_remaining + " remaining</strong>";
+  } catch (e) {
+    document.getElementById("account-info").textContent = "Error loading account: " + e.message;
+  }
+}
+
+async function loadJobs() {
+  try {
+    const jobs = await api("/api/jobs?account_id=" + ACCOUNT_ID);
+    const el = document.getElementById("jobs-list");
+    if (!jobs.length) {
+      el.textContent = "No jobs registered.";
+      return;
+    }
+    const rows = jobs.map(function(j) {
+      const startBtn = j.status !== "running"
+        ? "<button onclick=\"jobAction('" + j.id + "', 'start')\">Start</button>"
+        : "";
+      const stopBtn = j.status === "running"
+        ? "<button onclick=\"jobAction('" + j.id + "', 'stop')\">Stop</button>"
+        : "";
+      return "<tr>" +
+        "<td>" + j.name + "</td>" +
+        "<td>" + j.target_url + "</td>" +
+        "<td>" + j.pages_per_run + "</td>" +
+        "<td>" + j.status + "</td>" +
+        "<td>" + j.pages_extracted + "</td>" +
+        "<td>" + startBtn + stopBtn + "</td>" +
+        "</tr>";
+    }).join("");
+    el.innerHTML =
+      "<table border='1' cellpadding='4'>" +
+      "<tr><th>Name</th><th>Target URL</th><th>Pages/Run</th><th>Status</th><th>Pages Extracted</th><th>Actions</th></tr>" +
+      rows +
+      "</table>";
+  } catch (e) {
+    document.getElementById("jobs-list").textContent = "Error loading jobs: " + e.message;
+  }
+}
+
+async function jobAction(id, action) {
+  try {
+    await api("/api/jobs/" + id + "/" + action, "POST");
+    refresh();
+  } catch (e) {
+    alert("Error: " + e.message);
+  }
+}
+
+document.getElementById("register-form").addEventListener("submit", async function(e) {
+  e.preventDefault();
+  document.getElementById("register-error").textContent = "";
+  const fd = new FormData(e.target);
+  const body = {
+    account_id: ACCOUNT_ID,
+    name: fd.get("name"),
+    target_url: fd.get("target_url"),
+    pages_per_run: parseInt(fd.get("pages_per_run"), 10),
+  };
+  try {
+    await api("/api/jobs/", "POST", body);
+    e.target.reset();
+    refresh();
+  } catch (err) {
+    document.getElementById("register-error").textContent = err.message;
+  }
+});
+
+function refresh() {
+  loadAccount();
+  loadJobs();
+}
+
+refresh();
+</script>
+
+</body>
+</html>
